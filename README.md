@@ -1,6 +1,7 @@
 # safe-python
 `pip install --editable .`
-```safe --help
+```
+safe --help
 Usage: safe [OPTIONS] ADDRESS COMMAND [ARGS]...
 
   Command line interface for the Gnosis Safe.
