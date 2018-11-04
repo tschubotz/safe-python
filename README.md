@@ -1,6 +1,6 @@
 # safe-python
 ```
-$pip install --editable .
+$ pip install --editable .
 ```
 
 ```
