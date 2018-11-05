@@ -1,84 +1,98 @@
-import click
 import web3
 from gnosis.safe.contracts import get_safe_contract
-
-RPC_ENDPOINT_URL = 'https://rinkeby.infura.io/v3/c0ce0a963aa14e3898bd8525d3bdf682'
-
-
-class ChecksumAddressParamType(click.ParamType):
-    name = 'checksum_address'
-
-    def convert(self, value, param, ctx):
-        if web3.Web3.isChecksumAddress(value):
-            return value
-        else:
-            self.fail(
-                '{} is not a valid checksum address'.format(value),
-                param,
-                ctx)
+from web3.middleware import geth_poa_middleware
 
 
-CHECKSUM_ADDRESS = ChecksumAddressParamType()
+class Operation(object):
+    Call = 0
+    DelegateCall = 1
+    Create = 2
 
+ADDRESS0 = '0x0000000000000000000000000000000000000000'
 
-class Safe():
-    def __init__(self, address):
+class Safe(object):
+    def __init__(self, address, rpc_endpoint_url):
+        """Initializes a Safe.
+        """
         self.address = address
+        self.w3 = web3.Web3(web3.HTTPProvider(rpc_endpoint_url))
+        # https://web3py.readthedocs.io/en/stable/middleware.html#geth-style-proof-of-authority
+        self.w3.middleware_stack.inject(geth_poa_middleware, layer=0)
+        self.contract = get_safe_contract(w3=self.w3, address=self.address)
+
+    def get_balance(self, unit='wei'):
+        """Returns the Safe balance in the given unit.
+        """
+        return get_balance(self.w3, self.address, unit)
+
+    def get_owners(self):
+        """Returns a list of owner addresses.
+        """
+        return self.contract.functions.getOwners().call()
+
+    def get_threshold(self):
+        """Returns the threshold as int.
+        """
+        return self.contract.functions.getThreshold().call()
+
+    def exec_transaction(
+        self,
+        to,
+        value,
+        data,
+        operation,
+        safeTxGas,
+        dataGas,
+        gasPrice,
+        gasToken,
+        refundReceiver,
+        signatures
+    ):
+        
+        #     gasPrice=self.w3.eth.gasPrice,
+        
+
+        tx = self.contract.functions.execTransaction(
+            to,
+            value,
+            data,
+            operation,
+            safeTxGas,
+            dataGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
+            signatures
+            ).buildTransaction()
+        tx['nonce'] = self.w3.eth.getTransactionCount('0x0e329fa8d6Fcd1ba0Cda495431F1f7CA24F442C2')
+        private_key = ''
+        signed_tx = self.w3.eth.account.signTransaction(tx, '')
+        tx_hash = self.w3.eth.sendRawTransaction(signed_tx.rawTransaction)
+        print(tx_hash)
+
+    def transfer_ether(self, to, ether_value, signatures):
+        return self.exec_transaction(
+                    to=to,
+                    value=self.w3.toWei(ether_value, 'ether'),
+                    data=bytes(0),
+                    operation=Operation.Call,
+                    safeTxGas=100000,
+                    dataGas=100000,
+                    gasPrice=10,
+                    gasToken=ADDRESS0,
+                    refundReceiver=ADDRESS0,
+                    signatures=bytes(0)
+                    )
 
 
-pass_safe = click.make_pass_decorator(Safe)
-
-
-@click.group()
-@click.argument('address', type=CHECKSUM_ADDRESS)
-@click.version_option('0.0.1')
-@click.pass_context
-def cli(ctx, address):
-    """Command line interface for the Gnosis Safe.
+def code_exists(w3, address):
+    """Checks if code exists at the given address. Returns boolean.
     """
-    ctx.obj = Safe(address)
+    return (len(w3.eth.getCode(address)) != 0)
 
 
-@cli.command()
-@pass_safe
-def info(safe):
-    """Shows info about a Safe.
-    This will show info such as balance, threshold and owners of a Safe.
+def get_balance(w3, address, unit='wei'):
+    """Return the balance of the address in the given unit.
     """
-    w3 = web3.Web3(web3.HTTPProvider(RPC_ENDPOINT_URL))
-
-    # Get general things.
-    click.echo('Safe at address: {}'.format(safe.address))
-    click.echo('https://rinkeby.etherscan.io/address/{}\n'.format(
-        safe.address))
-    eth_balance = w3.eth.getBalance(safe.address)
-    click.echo('ETH balance: {}\n'.format(w3.fromWei(eth_balance, 'ether')))
-
-    # Owners
-    safe_contract = get_safe_contract(w3=w3, address=safe.address)
-    owners = safe_contract.functions.getOwners().call()
-    threshold = safe_contract.functions.getThreshold().call()
-    click.echo('threshold/owners: {}/{}\n'.format(threshold, len(owners)))
-    for i, owner in enumerate(owners):
-        code_exists = (len(w3.eth.getCode(owner)) != 0)
-        owner_eth_balance = w3.eth.getBalance(owner)
-        click.echo('Owner {}: {} (code at address: {}, balance: {})'.format(
-            i,
-            owner,
-            code_exists,
-            owner_eth_balance))
-
-
-@cli.command()
-@click.confirmation_option(help='Are you sure you want to delete the Safe?')
-@pass_safe
-def delete(safe):
-    """Deletes a Safe.
-    This will throw away the current Safe.
-    """
-    click.echo('You cannot delete a Safe. It will forever be on the blockchain! ¯\_(ツ)_/¯')
-
-
-if __name__ == '__main__':
-    # show_details()
-    pass
+    wei_balance = w3.eth.getBalance(address)
+    return w3.fromWei(wei_balance, unit)
