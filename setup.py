@@ -7,7 +7,8 @@ setup(
     install_requires=[
         'click',
         'gnosis-py',
-        'web3'
+        'web3',
+        'requests'
     ],
     entry_points='''
         [console_scripts]
