@@ -17,7 +17,7 @@ class Operation(object):
     Call = 0
     DelegateCall = 1
     Create = 2
-    
+
 
 def code_exists(w3, address):
     """Checks if code exists at the given address. Returns boolean.

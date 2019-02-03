@@ -3,7 +3,7 @@ from gnosis.safe.contracts import get_safe_contract
 from web3.middleware import geth_poa_middleware
 from .relay import Relay
 from .transaction import Transaction
-from .utils import sign, get_balance
+from .utils import get_balance
 from ethereum import utils
 import codecs
 
@@ -117,6 +117,6 @@ class Safe(object):
             to = to,
             value = self.w3.toWei(ether_value, 'ether'))
         
-        transaction.transaction_semantics_text = 'Transfer {} ETH from your Safe to {}'.format(transaction.value, transaction.to)
+        transaction.transaction_semantics_text = 'Transfer {} ETH from your Safe to {}'.format(self.w3.fromWei(transaction.value, 'ether'), transaction.to)
 
         return transaction
