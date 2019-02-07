@@ -22,16 +22,19 @@ class Relay(object):
 
     def estimate_transaction(self, transaction):
         endpoint = self._build_endpoint('safes/{}/transactions/estimate'.format(transaction.safe_address))
-
+        
         response = requests.post(endpoint, json={
             'safe': transaction.safe_address,
             'to': transaction.to,
             'value': transaction.value,
-            'data': transaction.data.hex(),
+            'data': transaction.data,
             'operation': transaction.operation,
             'gasToken': transaction.gas_token
         })
-        
+
+        if not response.ok:
+            raise Exception('Could not estimate ({}): {}'.format(response.status_code, response.json()))
+
         return response.json()
 
     def create_transaction(self, transaction):
@@ -41,7 +44,7 @@ class Relay(object):
             'safe': transaction.safe_address,
             'to': transaction.to,
             'value': transaction.value,
-            'data': transaction.data.hex(),
+            'data': transaction.data,
             'operation': transaction.operation,
             'gasToken': transaction.gas_token,
             'safeTxGas': transaction.safe_tx_gas,
@@ -51,5 +54,8 @@ class Relay(object):
             'nonce': transaction.nonce,
             'signatures': transaction.signatures
         })
+
+        if not response.ok:
+            raise Exception('Could not create transactio ({}): {}'.format(response.status_code, response.json()))
 
         return response.json()

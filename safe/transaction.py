@@ -6,7 +6,7 @@ class Transaction(object):
         safe_address, 
         to = '',
         value = 0,
-        data = bytes(0),
+        data = '0x',
         operation = Operation.Call,
         gas_token = ADDRESS0,
         safe_tx_gas = 0,
@@ -30,7 +30,8 @@ class Transaction(object):
         self.transaction_semantics_text = ''
 
     def estimate(self, relay):
-        estimate = relay.estimate_transaction(self)        
+        estimate = relay.estimate_transaction(self)
+
         self.safe_tx_gas = estimate['safeTxGas']
         self.data_gas = estimate['dataGas']
         # self.nonce = int(estimate['lastUsedNonce']) + 1 if estimate ['lastUsedNonce'] else 0 # Seems the relay service always returns None

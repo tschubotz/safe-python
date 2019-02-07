@@ -6,9 +6,22 @@ from safe import Safe
 from ethereum import utils
 import codecs
 
-RPC_ENDPOINT_URL = 'https://rinkeby.infura.io/asdf'
-# RPC_ENDPOINT_URL = 'http://localhost:8545'
-SAFE_RELAY_URL = 'https://safe-relay.rinkeby.gnosis.pm'
+INFURA_KEY = ''
+
+ENVS = {
+    'mainnet': {
+        'name': 'Ethereum mainnet',
+        'rpc_endpoint_url': 'https://mainnet.infura.io/{}'.format(INFURA_KEY),
+        'safe_relay_url': 'https://safe-relay.gnosis.pm', 
+        'etherscan_url': 'https://etherscan.io'
+    },
+    'rinkeby': {
+        'name': 'Rinkeby testnet',
+        'rpc_endpoint_url': 'https://rinkeby.infura.io/{}'.format(INFURA_KEY),
+        'safe_relay_url': 'https://safe-relay.rinkeby.gnosis.pm', 
+        'etherscan_url': 'https://rinkeby.etherscan.io'
+    }    
+}
 
 
 class ChecksumAddressParamType(click.ParamType):
@@ -22,6 +35,7 @@ class ChecksumAddressParamType(click.ParamType):
                 '{} is not a valid checksum address'.format(value),
                 param,
                 ctx)
+                
 
 CHECKSUM_ADDRESS = ChecksumAddressParamType()
 pass_safe = click.make_pass_decorator(Safe)
@@ -29,12 +43,20 @@ pass_safe = click.make_pass_decorator(Safe)
 
 @click.group()
 @click.argument('address', type=CHECKSUM_ADDRESS)
-@click.version_option('0.0.2')
+@click.option('-n', '--network', type=click.Choice(['mainnet', 'rinkeby']))
+@click.version_option('0.0.3')
 @click.pass_context
-def cli(ctx, address):
+def cli(ctx, address, network):
     """Command line interface for the Gnosis Safe.
     """
-    ctx.obj = Safe(address, RPC_ENDPOINT_URL, SAFE_RELAY_URL)
+    if not network:
+        network = 'mainnet'  
+
+    env = ENVS[network]
+
+    click.echo('\nYou are using: {}\n\n'.format(env['name']))
+
+    ctx.obj = Safe(network, address, env['rpc_endpoint_url'], env['safe_relay_url'])
 
 
 @cli.command()
@@ -45,8 +67,8 @@ def info(safe):
     """
     # Get general things.
     click.echo('Safe at address: {}'.format(safe.address))
-    click.echo('https://rinkeby.etherscan.io/address/{}\n'.format(
-        safe.address))
+    click.echo('{}/address/{}\n'.format(
+        ENVS[safe.network]['etherscan_url'], safe.address))
     click.echo('ETH balance: {}\n'.format(safe.get_balance('ether')))
 
     # Owners
@@ -99,12 +121,55 @@ def get_threshold(safe):
 def transfer_ether(safe, to_address, ether_value):
     """asdf
     """
+    safe_tx(safe, safe.transfer_ether_tx, to_address, ether_value)
+
+
+@cli.command()
+@click.argument('owner_address', type=CHECKSUM_ADDRESS)
+@click.argument('threshold', type=int)
+@pass_safe
+def owner_add(safe, owner_address, threshold):
+    """asdf
+    """
+    safe_tx(safe, safe.owner_add_tx, owner_address, threshold)
+    
+
+@cli.command()
+@click.argument('owner_address', type=CHECKSUM_ADDRESS)
+@click.argument('threshold', type=int)
+@pass_safe
+def owner_remove(safe, owner_address, threshold):
+    """asdf
+    """
+    safe_tx(safe, safe.owner_remove_tx, owner_address, threshold)
+
+
+@cli.command()
+@click.argument('old_owner_address', type=CHECKSUM_ADDRESS)
+@click.argument('new_owner_address', type=CHECKSUM_ADDRESS)
+@pass_safe
+def owner_swap(safe, old_owner_address, new_owner_address):
+    """asdf
+    """
+    safe_tx(safe, safe.owner_swap_tx, old_owner_address, new_owner_address)
+
+
+@cli.command()
+@click.argument('threshold', type=int)
+@pass_safe
+def owner_change_threshold(safe, threshold):
+    """asdf
+    """
+    safe_tx(safe, safe.owner_change_threshold_tx, threshold)
+ 
+
+def safe_tx(safe, function, *params):
     # build tx and get tx hash
-    transaction, transaction_hash = safe.build_transaction(safe.transfer_ether, to_address, ether_value)
+    transaction, transaction_hash = safe.build_transaction(function, *params)
 
     click.echo(transaction.transaction_semantics_text)
 
-    click.echo('Gas price: {}\nsafeTxGas: {}\ndataGas: {}\nnonce: {}\n\n'.format(transaction.gas_price, transaction.safe_tx_gas, transaction.data_gas, transaction.nonce))
+    click.echo('\nGas price: {}\nsafeTxGas: {}\ndataGas: {}\nnonce: {}\n\n'.format(transaction.gas_price, transaction.safe_tx_gas, transaction.data_gas, transaction.nonce))
 
     # check how many signatures are required
     threshold = safe.get_threshold()
@@ -116,8 +181,8 @@ def transfer_ether(safe, to_address, ether_value):
         signatures.append(json.loads(signature))
 
     click.confirm('Good to go. Submit tx?')
-
-    click.echo('https://rinkeby.etherscan.io/tx/{}'.format(safe.execute_transaction(transaction, signatures)['transactionHash']))
+    
+    click.echo('{}/tx/{}'.format(ENVS[safe.network]['etherscan_url'], safe.execute_transaction(transaction, signatures)['transactionHash']))
 
 
 @cli.command()
@@ -130,8 +195,9 @@ def delete(safe):
     click.echo('You cannot delete a Safe. It will forever be on the blockchain! ¯\_(ツ)_/¯')
 
 @cli.command()
+@click.option('--multi', is_flag=True, help='Ask for multiple signatures until threshold. Comes in handy when signing multiple owners on one machine.')
 @pass_safe
-def sign(safe):
+def sign(safe, multi):
     """asdf
     """
     transaction_hash = click.prompt('Please enter transaction hash')
@@ -139,15 +205,18 @@ def sign(safe):
 
     choice = click.prompt('What would you like to use for signing?\n(1) Private key\n(2) Account mnemonic\n(3) Safe mnemonic (Yields 2 signatures)\n', type=int)
     
-    if choice == 1:
-        private_key = click.prompt('Please enter private key (Input hidden)', hide_input=True)
-    else:
-        # TODO
-        exit()
+    loops = 1 if not multi else safe.get_threshold()
 
-    v, r, s = utils.ecsign(transaction_hash, codecs.decode(private_key, 'hex_codec'))
-    signature = {'v': v, 'r': r, 's': s}
-    click.echo('Signature:\n\n{}'.format(json.dumps(signature)))
+    for _ in range(loops):
+        if choice == 1:
+            private_key = click.prompt('Please enter private key (Input hidden)', hide_input=True)
+        else:
+            # TODO
+            exit()
+
+        v, r, s = utils.ecsign(transaction_hash, codecs.decode(private_key, 'hex_codec'))
+        signature = {'v': v, 'r': r, 's': s}
+        click.echo('Signature:\n\n{}'.format(json.dumps(signature)))
     
 
 if __name__ == '__main__':
