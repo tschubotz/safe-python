@@ -61,65 +61,23 @@ class Safe(object):
             transaction.refund_receiver,
             transaction.nonce
         ).call()
-        
-    # def exec_transaction(
-    #     self,
-    #     to,
-    #     value,
-    #     data,
-    #     operation,
-    #     safeTxGas,
-    #     dataGas,
-    #     gasPrice,
-    #     gasToken,
-    #     refundReceiver,
-    #     signatures
-    # ):
-        
-    #     #     gasPrice=self.w3.eth.gasPrice,
-
-
-    #     tx = self.contract.functions.execTransaction(
-    #         to,
-    #         value,
-    #         data,
-    #         operation,
-    #         safeTxGas,
-    #         dataGas,
-    #         gasPrice,
-    #         gasToken,
-    #         refundReceiver,
-    #         signatures
-    #         ).buildTransaction({
-    #             'nonce': self.w3.eth.getTransactionCount('0x39cBD3814757Be997040E51921e8D54618278A08'),
-    #             'gas': safeTxGas + dataGas,
-    #             'gasPrice': gasPrice,
-    #             'chainId': 1977 
-    #         })
-    #     private_key = ''
-
-    #     # self.w3.eth.estimateGas({'from':self.contract.address, 'to':self.contract.address, 'data': self.contract.functions.requiredTxGas(to, value, data, operation)._encode_transaction_data()})
-    #     signed_tx = self.w3.eth.account.signTransaction(tx, private_key)
-        
-    #     tx_hash = self.w3.eth.sendRawTransaction(signed_tx.rawTransaction)
-    #     import pdb; pdb.set_trace()
-    #     print(tx_hash)
 
     def build_transaction(self, function, *params):
         transaction = function(*params)
         transaction.gas_price = self.safe_relay.get_gas_price()
         transaction.estimate(self.safe_relay)
         transaction.nonce = self.get_nonce()
-        return transaction, self.get_transaction_hash(transaction)
+        transaction.calculate_hash()
+        return transaction
 
     def execute_transaction(self, transaction, signatures):
-        transaction.signatures = signatures
+        transaction.add_signatures(signatures)
 
         return self.safe_relay.create_transaction(transaction)
 
     def transfer_ether_tx(self, to, ether_value):
         transaction = Transaction(
-            self.address,
+            self,
             to = to,
             value = self.w3.toWei(ether_value, 'ether'))
         
@@ -131,7 +89,7 @@ class Safe(object):
         data = self.contract.encodeABI(fn_name='addOwnerWithThreshold', args=[owner_address,1])
 
         transaction = Transaction(
-            self.address,
+            self,
             to = self.address,
             data = data)
 
@@ -145,7 +103,7 @@ class Safe(object):
         data = self.contract.encodeABI(fn_name='removeOwner', args=[prev_owner, owner_address, 1])
 
         transaction = Transaction(
-            self.address,
+            self,
             to = self.address,
             data = data)
 
@@ -160,7 +118,7 @@ class Safe(object):
         data = self.contract.encodeABI(fn_name='swapOwner', args=[prev_owner, old_owner_address, new_owner_address])
 
         transaction = Transaction(
-            self.address,
+            self,
             to = self.address,
             data = data)
 
@@ -172,11 +130,11 @@ class Safe(object):
         data = self.contract.encodeABI(fn_name='changeThreshold', args=[threshold])
 
         transaction = Transaction(
-            self.address,
+            self,
             to = self.address,
             data = data)
 
-        transaction.transaction_semantics_text = 'Change threshold to'.format(threshold)
+        transaction.transaction_semantics_text = 'Change threshold to {}'.format(threshold)
         
         return transaction
         

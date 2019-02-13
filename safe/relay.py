@@ -21,10 +21,10 @@ class Relay(object):
         return self.gas_price
 
     def estimate_transaction(self, transaction):
-        endpoint = self._build_endpoint('safes/{}/transactions/estimate'.format(transaction.safe_address))
+        endpoint = self._build_endpoint('safes/{}/transactions/estimate'.format(transaction.safe.address))
         
         response = requests.post(endpoint, json={
-            'safe': transaction.safe_address,
+            'safe': transaction.safe.address,
             'to': transaction.to,
             'value': transaction.value,
             'data': transaction.data,
@@ -38,10 +38,10 @@ class Relay(object):
         return response.json()
 
     def create_transaction(self, transaction):
-        endpoint = self._build_endpoint('safes/{}/transactions/'.format(transaction.safe_address))
+        endpoint = self._build_endpoint('safes/{}/transactions/'.format(transaction.safe.address))
 
         response = requests.post(endpoint, json={
-            'safe': transaction.safe_address,
+            'safe': transaction.safe.address,
             'to': transaction.to,
             'value': transaction.value,
             'data': transaction.data,

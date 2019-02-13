@@ -3,8 +3,9 @@ import web3
 import json
 from safe.utils import ADDRESS0, Operation, get_balance, code_exists
 from safe import Safe
-from ethereum import utils
+from ethereum.utils import ecsign
 import codecs
+from crypto import HDPrivateKey, HDKey
 
 INFURA_KEY = ''
 
@@ -165,7 +166,7 @@ def owner_change_threshold(safe, threshold):
 
 def safe_tx(safe, function, *params):
     # build tx and get tx hash
-    transaction, transaction_hash = safe.build_transaction(function, *params)
+    transaction = safe.build_transaction(function, *params)
 
     click.echo(transaction.transaction_semantics_text)
 
@@ -174,7 +175,7 @@ def safe_tx(safe, function, *params):
     # check how many signatures are required
     threshold = safe.get_threshold()
     
-    click.echo('Threshold: {}\n Please sign: {}\n\n'.format(threshold, transaction_hash.hex()))
+    click.echo('Threshold: {}\n Please sign: {}\n\n'.format(threshold, transaction.hash.hex()))
     signatures = []
     for i in range(threshold):
         signature = click.prompt('Signature {}/{}'.format(i+1, threshold)) # TODO validate format
@@ -210,11 +211,20 @@ def sign(safe, multi):
     for _ in range(loops):
         if choice == 1:
             private_key = click.prompt('Please enter private key (Input hidden)', hide_input=True)
+        elif choice == 2:
+            mnemonic = click.prompt('Please enter account mnemonic (Input hidden)', hide_input=True)
+            master_key = HDPrivateKey.master_key_from_mnemonic(mnemonic)
+            root_keys = HDKey.from_path(master_key,"m/44'/60'/0'")
+            private_key = root_keys[-1]
+            # for i in range(10):
+            #     keys = HDKey.from_path(acct_priv_key,'{change}/{index}'.format(change=0, index=i))
+            #     private_key = keys[-1]
+            #     public_key = private_key.public_key
         else:
             # TODO
             exit()
 
-        v, r, s = utils.ecsign(transaction_hash, codecs.decode(private_key, 'hex_codec'))
+        v, r, s = ecsign(transaction_hash, codecs.decode(private_key, 'hex_codec'))
         signature = {'v': v, 'r': r, 's': s}
         click.echo('Signature:\n\n{}'.format(json.dumps(signature)))
     
