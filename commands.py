@@ -5,7 +5,7 @@ from safe.utils import ADDRESS0, Operation, get_balance, code_exists
 from safe import Safe
 from ethereum.utils import ecsign
 import codecs
-from crypto import HDPrivateKey, HDKey
+from bip44 import HDPrivateKey, HDKey
 
 INFURA_KEY = ''
 
