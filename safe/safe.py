@@ -1,5 +1,5 @@
 import web3
-from gnosis.safe.contracts import get_safe_contract
+from gnosis.eth.contracts import get_safe_contract
 from web3.middleware import geth_poa_middleware
 from .relay import Relay
 from .transaction import Transaction
