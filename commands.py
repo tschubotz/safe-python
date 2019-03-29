@@ -1,7 +1,7 @@
 import click
 import web3
 import json
-from safe.utils import ADDRESS0, Operation, get_balance, code_exists
+from safe.utils import ADDRESS0, Operation, get_balance, code_exists, get_private_key_from_mnemonic
 from safe import Safe
 from ethereum.utils import ecsign
 import codecs
@@ -71,6 +71,11 @@ def info(safe):
     click.echo('{}/address/{}\n'.format(
         ENVS[safe.network]['etherscan_url'], safe.address))
     click.echo('ETH balance: {}\n'.format(safe.get_balance('ether')))
+    
+    # Is there even code at the address?
+    if not code_exists(safe.w3, safe.address):
+        click.echo('No code found at provided address. Are you sure that you are on the right network?')
+        exit()
 
     # Owners
     owners = safe.get_owners()
@@ -208,25 +213,27 @@ def sign(safe, multi):
     
     loops = 1 if not multi else safe.get_threshold()
 
+    private_keys = []
+
     for _ in range(loops):
         if choice == 1:
-            private_key = click.prompt('Please enter private key (Input hidden)', hide_input=True)
+            key = click.prompt('Please enter private key (Input hidden)', hide_input=True)
+            private_keys.append(key)
         elif choice == 2:
             mnemonic = click.prompt('Please enter account mnemonic (Input hidden)', hide_input=True)
-            master_key = HDPrivateKey.master_key_from_mnemonic(mnemonic)
-            root_keys = HDKey.from_path(master_key,"m/44'/60'/0'")
-            private_key = root_keys[-1]
-            # for i in range(10):
-            #     keys = HDKey.from_path(acct_priv_key,'{change}/{index}'.format(change=0, index=i))
-            #     private_key = keys[-1]
-            #     public_key = private_key.public_key
+            key = get_private_key_from_mnemonic(mnemonic)
+            private_keys.append(key)
         else:
-            # TODO
-            exit()
+            mnemonic = click.prompt('Please enter Safe mnemonic (Input hidden)', hide_input=True)
+            key_0 = get_private_key_from_mnemonic(mnemonic, index=0)
+            private_keys.append(key_0)
+            key_1 = get_private_key_from_mnemonic(mnemonic, index=1)
+            private_keys.append(key_1)
 
-        v, r, s = ecsign(transaction_hash, codecs.decode(private_key, 'hex_codec'))
-        signature = {'v': v, 'r': r, 's': s}
-        click.echo('Signature:\n\n{}'.format(json.dumps(signature)))
+        for i, key in enumerate(private_keys):
+            v, r, s = ecsign(transaction_hash, codecs.decode(key, 'hex_codec'))
+            signature = {'v': v, 'r': r, 's': s}
+            click.echo('Signature {}:\n\n{}'.format(i, json.dumps(signature)))
     
 
 if __name__ == '__main__':
