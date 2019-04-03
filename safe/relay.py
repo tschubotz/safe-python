@@ -56,6 +56,6 @@ class Relay(object):
         })
 
         if not response.ok:
-            raise Exception('Could not create transactio ({}): {}'.format(response.status_code, response.json()))
+            raise Exception('Could not create transaction ({}): {}'.format(response.status_code, response.json()))
 
         return response.json()

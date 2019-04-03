@@ -35,7 +35,7 @@ def get_balance(w3, address, unit='wei'):
     return w3.fromWei(wei_balance, unit)
 
 
-def get_private_key_from_mnemonic(mnemonic, index=0):
+def get_account_info_from_mnemonic(mnemonic, index=0):
     """asdf
     """
     master_key = HDPrivateKey.master_key_from_mnemonic(mnemonic)
@@ -46,4 +46,4 @@ def get_private_key_from_mnemonic(mnemonic, index=0):
     private_key = keys[-1]
     public_key = private_key.public_key
     
-    return private_key._key.to_hex()
+    return private_key._key.to_hex(), public_key.address()
