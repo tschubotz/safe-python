@@ -126,7 +126,8 @@ def get_threshold(safe):
 @click.argument('ether_value', type=float)
 @pass_safe
 def transfer_ether(safe, to_address, ether_value):
-    """asdf
+    """Transfer ether to an account.
+    This will transfer the given amount of ether from the Safe to another account.
     """
     safe_tx(safe, safe.transfer_ether_tx, to_address, ether_value)
 
@@ -136,7 +137,8 @@ def transfer_ether(safe, to_address, ether_value):
 @click.argument('threshold', type=int)
 @pass_safe
 def owner_add(safe, owner_address, threshold):
-    """asdf
+    """Add owner to a Safe.
+    This will add an owner to the Safe.
     """
     safe_tx(safe, safe.owner_add_tx, owner_address, threshold)
     
@@ -146,7 +148,8 @@ def owner_add(safe, owner_address, threshold):
 @click.argument('threshold', type=int)
 @pass_safe
 def owner_remove(safe, owner_address, threshold):
-    """asdf
+    """Remove owner from a Safe.
+    This will remove an owner from the Safe.
     """
     safe_tx(safe, safe.owner_remove_tx, owner_address, threshold)
 
@@ -156,7 +159,8 @@ def owner_remove(safe, owner_address, threshold):
 @click.argument('new_owner_address', type=CHECKSUM_ADDRESS)
 @pass_safe
 def owner_swap(safe, old_owner_address, new_owner_address):
-    """asdf
+    """Swap owners of a Safe.
+    This will replace an existing owner of the Safe with a new one.
     """
     safe_tx(safe, safe.owner_swap_tx, old_owner_address, new_owner_address)
 
@@ -165,7 +169,8 @@ def owner_swap(safe, old_owner_address, new_owner_address):
 @click.argument('threshold', type=int)
 @pass_safe
 def owner_change_threshold(safe, threshold):
-    """asdf
+    """Change confirmation threshold of a Safe.
+    This will change the number of confirmations required to make a transaction with the Safe.
     """
     safe_tx(safe, safe.owner_change_threshold_tx, threshold)
  
@@ -205,14 +210,15 @@ def delete(safe):
 @click.option('--multi', is_flag=True, help='Ask for multiple signatures until threshold. Comes in handy when signing multiple owners on one machine.')
 @pass_safe
 def sign(safe, multi):
-    """asdf
+    """Sign transation of a Safe.
+    This will sign a given transaction hash and return the signature.
     """
     transaction_hash = click.prompt('Please enter transaction hash')
     transaction_hash = codecs.decode(transaction_hash, 'hex_codec')
 
     choice = click.prompt('What would you like to use for signing?\n(1) Private key\n(2) Account mnemonic\n(3) Safe mnemonic (Yields 2 signatures)\n', type=int)
     
-    loops = 1 # if not multi else safe.get_threshold()
+    loops = 1 if not multi else safe.get_threshold()
 
     account_info = []
 
