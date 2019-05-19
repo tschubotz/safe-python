@@ -15,6 +15,7 @@ Options:
   --help                          Show this message and exit.
 
 Commands:
+  check_key               Check recovery key.
   delete                  Deletes a Safe.
   get_nonce               Show current nonce of the Safe.
   get_owners              Lists all owners of a Safe.

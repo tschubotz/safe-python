@@ -13,13 +13,13 @@ INFURA_KEY = ''
 ENVS = {
     'mainnet': {
         'name': 'Ethereum mainnet',
-        'rpc_endpoint_url': 'https://mainnet.infura.io/{}'.format(INFURA_KEY),
+        'rpc_endpoint_url': 'https://mainnet.infura.io/v3/{}'.format(INFURA_KEY),
         'safe_relay_url': 'https://safe-relay.gnosis.pm', 
         'etherscan_url': 'https://etherscan.io'
     },
     'rinkeby': {
         'name': 'Rinkeby testnet',
-        'rpc_endpoint_url': 'https://rinkeby.infura.io/{}'.format(INFURA_KEY),
+        'rpc_endpoint_url': 'https://rinkeby.infura.io/v3/{}'.format(INFURA_KEY),
         'safe_relay_url': 'https://safe-relay.rinkeby.gnosis.pm', 
         'etherscan_url': 'https://rinkeby.etherscan.io'
     }    
@@ -52,7 +52,7 @@ def cli(ctx, address, network):
     """Command line interface for the Gnosis Safe.
     """
     if not network:
-        network = 'mainnet'  
+        network = 'mainnet'
 
     env = ENVS[network]
 
@@ -244,6 +244,34 @@ def sign(safe, multi):
             signature = {'v': v, 'r': r, 's': s}
             click.echo('Signature {} ({}):\n\n{}'.format(i, address, json.dumps(signature)))
     
+
+@cli.command()
+@click.option('--no_check', is_flag=False, help='Do not check if the addresses are owners. Just print them.')
+@pass_safe
+def check_key(safe, no_check):
+    """Check recovery key.
+    Print the 2 addresses the Safe recovery key stands for.
+    """
+    mnemonic = click.prompt('Please enter Safe mnemonic (Input hidden)', hide_input=True)
+    addresses = [
+        safe.w3.toChecksumAddress(get_account_info_from_mnemonic(mnemonic, index=0)[1]),
+        safe.w3.toChecksumAddress(get_account_info_from_mnemonic(mnemonic, index=1)[1])
+    ]
+    
+    click.echo('Address #0: {}'.format(addresses[0]))
+    click.echo('Address #1: {}'.format(addresses[1]))
+
+    if not no_check:
+        owners = safe.get_owners()
+
+        if addresses[0] not in owners or addresses[1] not in addresses[1]:
+            click.echo('\nThis seems to be an invalid recovery key!')
+            click.echo('\nOwner addresses are:')
+            for owner in owners:
+                click.echo('\t{}'.format(owner))
+            
+        
+
 
 if __name__ == '__main__':
     # show_details()
