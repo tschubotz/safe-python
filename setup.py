@@ -11,6 +11,13 @@ setup(
         'web3==4.8.2',
         'bip44@git+ssh://git@github.com/tschubotz/ethereum-bip44-python@master',
     ],
+    tests_require=[
+        'pytest',
+        'pytest-mock',
+    ],
+    setup_requires=[
+        'pytest-runner',
+    ],
     entry_points='''
         [console_scripts]
         safe=commands:cli
