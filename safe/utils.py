@@ -1,6 +1,7 @@
 import codecs
 from ethereum import utils
 from bip44.crypto import HDPrivateKey, HDKey
+import web3
 
 ADDRESS0 = '0x0000000000000000000000000000000000000000'
 
@@ -36,7 +37,7 @@ def get_balance(w3, address, unit='wei'):
 
 
 def get_account_info_from_mnemonic(mnemonic, index=0):
-    """asdf
+    """Return private key and account address from mnemonic
     """
     master_key = HDPrivateKey.master_key_from_mnemonic(mnemonic)
     root_keys = HDKey.from_path(master_key,"m/44'/60'/0'")
@@ -46,4 +47,4 @@ def get_account_info_from_mnemonic(mnemonic, index=0):
     private_key = keys[-1]
     public_key = private_key.public_key
     
-    return private_key._key.to_hex(), public_key.address()
+    return private_key._key.to_hex(), web3.Web3.toChecksumAddress(public_key.address())

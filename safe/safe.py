@@ -8,7 +8,6 @@ from ethereum import utils
 import codecs
 
 
-
 class Safe(object):
     def __init__(self, network, address, rpc_endpoint_url, safe_relay_url):
         """Initializes a Safe.
