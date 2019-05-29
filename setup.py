@@ -9,7 +9,7 @@ setup(
         'click==6.6',
         'gnosis-py==0.12.3',
         'web3==4.8.2',
-        'bip44@git+ssh://git@github.com/tschubotz/ethereum-bip44-python@master',
+        'bip44@git+https://git@github.com/tschubotz/ethereum-bip44-python@master',
     ],
     tests_require=[
         'pytest',
